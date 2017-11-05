@@ -1,3 +1,5 @@
+#encoding:utf-8
+
 import pandas as pd
 import datetime
 import csv
@@ -11,7 +13,7 @@ warnings.filterwarnings('ignore')
 from sklearn.preprocessing import StandardScaler,LabelEncoder
 from sklearn.base import TransformerMixin
 from sklearn import cross_validation
-from matplotlib import pylab as plt
+# from matplotlib import pylab as plt
 plot = True
 goal = 'Sales'
 myid = 'Id'
@@ -38,58 +40,69 @@ def rmspe_xg(yhat, y):
     rmspe = np.sqrt(np.mean(w * (y - yhat) ** 2))
     return 'rmspe', rmspe
 
-def load_data():
+
+def get_data():
     store = pd.read_csv('./store.csv')
-    train_org = pd.read_csv('./train.csv',dtype={'StateHoliday':pd.np.string_})
-    test_org = pd.read_csv('./test.csv',dtype={'StateHoliday':pd.np.string_})
-    train = pd.merge(train_org,store,on='Store',how='left')
-    test = pd.merge(test_org,store,on='Store',how='left')
-    feature = test.columns.tolist()
-    numerics = ['int16','int32','int64','float16','float32','float64']
-    feature_numeric = test.select_dtypes(include = numerics).columns.tolist()
-    feature_non_numeric = [f for f in feature if f not in feature_numeric]
-    return (train,test,feature,feature_non_numeric)
+    train_org = pd.read_csv('./train.csv', dtype={'StateHoliday': pd.np.string_})
+    test_org = pd.read_csv('./test.csv', dtype={'StateHoliday': pd.np.string_})
+    train = pd.merge(train_org, store, on='Store', how='left')
+    test = pd.merge(test_org, store, on='Store', how='left')
+
+    features1 = ['Id', 'Store', 'DayOfWeek', 'Date', 'Open', 'Promo', 'StateHoliday',
+                 'SchoolHoliday', 'StoreType', 'Assortment', 'CompetitionDistance',
+                 'CompetitionOpenSinceMonth', 'CompetitionOpenSinceYear', 'Promo2',
+                 'Promo2SinceWeek', 'Promo2SinceYear', 'PromoInterval']
+
+    feature_non = ['Promo', 'Store', 'Date', 'StateHoliday', 'SchoolHoliday', 'StoreType', 'Assortment', 'Promo2',
+                   'PromoInterval']
+    return (train, test, features1, feature_non)
 
 
-def process_data(train, test, features, features_non_numeric):
-    train = train[train['Sales'] > 0]
+def process_data(train, test, features, features_no):
+    train = train[train['Open'] == 1]
 
-    for data in [train, test]:
-        data['year'] = data.Date.apply(lambda x: x.split('-')[0])
-        data['year'] = data['year'].astype(float)
-        data['month'] = data.Date.apply(lambda x: x.split('-')[1])
-        data['month'] = data['month'].astype(float)
-        data['day'] = data.Date.apply(lambda x: x.split('-')[2])
-        data['day'] = data['day'].astype(float)
+    test = test[test['Open'] == 1]
+    for rossm in [train, test]:
+        rossm['year'] = rossm.Date.apply(lambda x: int(x.split('-')[0]))
+        rossm['month'] = rossm.Date.apply(lambda x: int(x.split('-')[1]))
+        rossm['day'] = rossm.Date.apply(lambda x: int(x.split('-')[2]))
 
-        data['promojan'] = data.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Jan' in x else 0)
-        data['promofeb'] = data.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Feb' in x else 0)
-        data['promomar'] = data.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Mar' in x else 0)
-        data['promoapr'] = data.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Apr' in x else 0)
-        data['promomay'] = data.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'May' in x else 0)
-        data['promojun'] = data.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Jun' in x else 0)
-        data['promojul'] = data.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Jul' in x else 0)
-        data['promoaug'] = data.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Aug' in x else 0)
-        data['promosep'] = data.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Sep' in x else 0)
-        data['promooct'] = data.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Oct' in x else 0)
-        data['promonov'] = data.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Nov' in x else 0)
-        data['promodec'] = data.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Dec' in x else 0)
+        rossm['promojan'] = rossm.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Jan' in x else 0)
+        rossm['promofeb'] = rossm.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Feb' in x else 0)
+        rossm['promomar'] = rossm.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Mar' in x else 0)
+        rossm['promoapr'] = rossm.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Apr' in x else 0)
+        rossm['promomay'] = rossm.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'May' in x else 0)
+        rossm['promojun'] = rossm.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Jun' in x else 0)
+        rossm['promojul'] = rossm.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Jul' in x else 0)
+        rossm['promoaug'] = rossm.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Aug' in x else 0)
+        rossm['promosep'] = rossm.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Sep' in x else 0)
+        rossm['promooct'] = rossm.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Oct' in x else 0)
+        rossm['promonov'] = rossm.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Nov' in x else 0)
+        rossm['promodec'] = rossm.PromoInterval.apply(lambda x: 0 if isinstance(x, float) else 1 if 'Dec' in x else 0)
 
-    noisy_features = [myid, 'Date']
-    features = [c for c in features if c not in noisy_features]
-    features_non_numeric = [c for c in features_non_numeric if c not in noisy_features]
+    day_dummies = pd.get_dummies(train['DayOfWeek'], prefix='Day')
+    day_dummies.drop(['Day_7'], axis=1, inplace=True)  # 删除周日的数据
+    train = train.join(day_dummies)
+
+    day_dummies_test = pd.get_dummies(test['DayOfWeek'], prefix='Day')
+    day_dummies_test.drop(['Day_7'], axis=1, inplace=True)  # 删除周日数据
+    test = test.join(day_dummies_test)
+
+    no_feature = [myid, 'Date']
+    features = set(features) - set(no_feature)
+    features_no = set(features_no) - set(no_feature)
+    features = list(features)
     features.extend(['year', 'month', 'day'])
 
     class DataFrameInputer(TransformerMixin):
-
         def __init__(self):
             """
             """
 
         def fit(self, X, y=None):
             self.fill = pd.Series([X[c].value_counts().index[0]
-                                   if X[c].dtype == np.dtype('O') else X[c].mean() for c in X],
-                                  index=X.columns)
+                                   if X[c].dtype == np.dtype('O')
+                                   else X[c].mean() for c in X], index=X.columns)
             return self
 
         def transform(self, X, y=None):
@@ -99,26 +112,22 @@ def process_data(train, test, features, features_non_numeric):
     test = DataFrameInputer().fit_transform(test)
 
     le = LabelEncoder()
-    for col in features_non_numeric:
+    for col in features:
         le.fit(list(train[col]) + list(test[col]))
         train[col] = le.transform(train[col])
         test[col] = le.transform(test[col])
-    scaler = StandardScaler()
-    #     print(set(features) - set(features_non_numeric) - set([]))
 
-    #     print('feature',features)
-    #     print('features_non',features_non_numeric)
-    #     print(test['StateHoliday'].head())
-    for col in set(features) - set(features_non_numeric) - set([]):
-        #         print(col)
+    scaler = StandardScaler()
+    print(set(features) - set(features_no) - set([]))
+    for col in set(features) - set(features_no) - set([]):
         try:
             scaler.fit(list(train[col]) + list(test[col]))
         except:
             print(col)
         train[col] = scaler.transform(train[col])
         test[col] = scaler.transform(test[col])
-    return (train, test, features, features_non_numeric)
+    return (train, test, features, features_no)
 
-train,test,features,features_non_numeric = load_data()
+train,test,features,features_non_numeric = get_data()
 train,test,features,features_non_numeric = process_data(train,test,features,features_non_numeric)
 train[['Promo2SinceWeek']].head()
